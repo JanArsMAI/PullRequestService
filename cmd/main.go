@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	_ "github.com/JanArsMAI/PullRequestService/docs"
 	"github.com/JanArsMAI/PullRequestService/internal/config"
 	"github.com/JanArsMAI/PullRequestService/internal/di"
 	zapLogger "github.com/JanArsMAI/PullRequestService/logger"
@@ -19,6 +20,9 @@ import (
 )
 
 func listenRESTServer(r *gin.Engine, logger *zap.Logger, cfg config.ServerConfig) *http.Server {
+	if cfg.Port == 0 {
+		cfg.Port = 8080
+	}
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Port),
 		Handler: r,
@@ -27,13 +31,12 @@ func listenRESTServer(r *gin.Engine, logger *zap.Logger, cfg config.ServerConfig
 	go func() {
 		logger.Info("Starting server", zap.Int("port", cfg.Port))
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Fatal("Failed to start REST server: %v", zap.Error(err))
+			logger.Fatal("Failed to start REST server", zap.Error(err))
 		}
 	}()
 
 	return server
 }
-
 func main() {
 	err := godotenv.Load("./.env")
 	if err != nil {
@@ -46,7 +49,7 @@ func main() {
 	}
 	logger := zapLogger.NewLogger(cfg.Logging.Level)
 	r := gin.Default()
-	close := di.ConfigureApp(logger, cfg.PR)
+	close := di.ConfigureApp(r, logger)
 	defer close()
 	serverREST := listenRESTServer(r, logger, cfg.Server)
 	quit := make(chan os.Signal, 1)

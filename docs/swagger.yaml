@@ -1,0 +1,73 @@
+definitions:
+  dto.AddTeamRequest:
+    properties:
+      members:
+        items:
+          $ref: '#/definitions/dto.MemberDto'
+        type: array
+      team_name:
+        type: string
+    type: object
+  dto.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  dto.MemberDto:
+    properties:
+      is_active:
+        type: boolean
+      user_id:
+        type: string
+      username:
+        type: string
+    type: object
+  dto.TeamDtoResponse:
+    properties:
+      members:
+        items:
+          $ref: '#/definitions/dto.MemberDto'
+        type: array
+      team_name:
+        type: string
+    type: object
+  dto.TeamResponse:
+    properties:
+      team:
+        $ref: '#/definitions/dto.TeamDtoResponse'
+    type: object
+info:
+  contact: {}
+paths:
+  /team/add:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new team with members. If a member already exists, it
+        will be updated. Reassigns PRs for existing members.
+      parameters:
+      - description: Team data
+        in: body
+        name: team
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AddTeamRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Team successfully created
+          schema:
+            $ref: '#/definitions/dto.TeamResponse'
+        "400":
+          description: Bad request, invalid data
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Add a new team
+      tags:
+      - team
+swagger: "2.0"

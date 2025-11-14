@@ -14,7 +14,6 @@ type Config struct {
 type AppConfig struct {
 	Server  ServerConfig  `yaml:"server"`
 	Logging LoggingConfig `yaml:"logging"`
-	PR      PRConfig      `yaml:"pr"`
 }
 
 type ServerConfig struct {
@@ -23,10 +22,6 @@ type ServerConfig struct {
 
 type LoggingConfig struct {
 	Level string `yaml:"level"`
-}
-
-type PRConfig struct {
-	MaxReviewers int `yaml:"max_reviewers"`
 }
 
 func MustLoad(path string) (*AppConfig, error) {

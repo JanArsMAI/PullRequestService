@@ -2,7 +2,6 @@ package di
 
 import (
 	"github.com/JanArsMAI/PullRequestService/internal/application"
-	"github.com/JanArsMAI/PullRequestService/internal/config"
 	"github.com/JanArsMAI/PullRequestService/internal/infrastructure/db"
 	"github.com/JanArsMAI/PullRequestService/internal/infrastructure/repos"
 	rest "github.com/JanArsMAI/PullRequestService/internal/presentation/gin"
@@ -10,7 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func ConfigureApp(r *gin.Engine, logger *zap.Logger, cfg config.PRConfig) func() {
+func ConfigureApp(r *gin.Engine, logger *zap.Logger) func() {
 	logger.Info("Starting configuring app...")
 
 	db, err := db.NewPostgresConnection(db.ReadConfig())
