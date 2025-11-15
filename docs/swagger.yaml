@@ -8,10 +8,26 @@ definitions:
       team_name:
         type: string
     type: object
+  dto.CreatePR:
+    properties:
+      author_id:
+        type: string
+      pull_request_id:
+        type: string
+      pull_request_name:
+        type: string
+    type: object
+  dto.ErrorMessage:
+    properties:
+      code:
+        type: string
+      message:
+        type: string
+    type: object
   dto.ErrorResponse:
     properties:
       error:
-        type: string
+        $ref: '#/definitions/dto.ErrorMessage'
     type: object
   dto.MemberDto:
     properties:
@@ -22,11 +38,92 @@ definitions:
       username:
         type: string
     type: object
+  dto.MemberDtoResponse:
+    properties:
+      is_active:
+        type: boolean
+      user_id:
+        type: string
+      username:
+        type: string
+    type: object
+  dto.MergeRequest:
+    properties:
+      pull_request_id:
+        type: string
+    type: object
+  dto.MergeResponse:
+    properties:
+      pr:
+        $ref: '#/definitions/dto.MergedPullRequestOfUser'
+    type: object
+  dto.MergedPullRequestOfUser:
+    properties:
+      assigned_reviewers:
+        items:
+          type: string
+        type: array
+      author_id:
+        type: string
+      merged_at:
+        type: string
+      pull_request_id:
+        type: string
+      pull_request_name:
+        type: string
+      status:
+        type: string
+    type: object
+  dto.PullRequest:
+    properties:
+      assigned_reviewers:
+        items:
+          type: string
+        type: array
+      author_id:
+        type: string
+      pull_request_id:
+        type: string
+      pull_request_name:
+        type: string
+      status:
+        type: string
+    type: object
+  dto.PullRequestOfUser:
+    properties:
+      author_id:
+        type: string
+      pull_request_id:
+        type: string
+      pull_request_name:
+        type: string
+      status:
+        type: string
+    type: object
+  dto.PullRequestResponse:
+    properties:
+      pr:
+        $ref: '#/definitions/dto.PullRequest'
+    type: object
+  dto.ReassignPullRequest:
+    properties:
+      old_reviewer_id:
+        type: string
+      pull_request_id:
+        type: string
+    type: object
+  dto.SetUserActive:
+    properties:
+      is_active:
+        type: boolean
+      user_id:
+        type: string
+    type: object
   dto.TeamDtoResponse:
     properties:
       members:
         items:
-          $ref: '#/definitions/dto.MemberDto'
+          $ref: '#/definitions/dto.MemberDtoResponse'
         type: array
       team_name:
         type: string
@@ -36,17 +133,163 @@ definitions:
       team:
         $ref: '#/definitions/dto.TeamDtoResponse'
     type: object
+  dto.UserResponse:
+    properties:
+      user:
+        $ref: '#/definitions/dto.UserWithTeam'
+    type: object
+  dto.UserWithTeam:
+    properties:
+      is_active:
+        type: boolean
+      team_name:
+        type: string
+      user_id:
+        type: string
+      username:
+        type: string
+    type: object
+  dto.UsersPrResponse:
+    properties:
+      pull_requests:
+        items:
+          $ref: '#/definitions/dto.PullRequestOfUser'
+        type: array
+      user_id:
+        type: string
+    type: object
 info:
   contact: {}
 paths:
+  /pullRequest/create:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Создаёт новый Pull Request от указанного автора.
+        Ревьюеры выбираются автоматически на основе команды автора.
+      parameters:
+      - description: токен администратора(Вводить без Bearer)
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Данные для создания Pull Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreatePR'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: PR успешно создан
+          schema:
+            $ref: '#/definitions/dto.PullRequestResponse'
+        "400":
+          description: Некорректный формат запроса
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Автор или команда не найдены
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: PR с таким ID уже существует
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+      summary: Создать Pull Request
+      tags:
+      - PullRequests
+  /pullRequest/merge:
+    post:
+      description: Пометить PR как MERGED
+      parameters:
+      - description: Id PR
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.MergeRequest'
+      - description: токен пользователя(Вводить без Bearer)
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      responses:
+        "200":
+          description: PR в состоянии MERGED
+          schema:
+            $ref: '#/definitions/dto.MergeResponse'
+        "400":
+          description: Некорректный формат запроса
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Некорректный формат запроса
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: PR не найден
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Пометить PR как MERGED
+      tags:
+      - PullRequests
+  /pullRequest/reassign:
+    post:
+      description: Переназначить конкретного ревьювера на другого из его команды
+      parameters:
+      - description: data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ReassignPullRequest'
+      - description: токен администратора(Вводить без Bearer)
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Переназначение выполнено
+          schema:
+            $ref: '#/definitions/dto.MergeResponse'
+        "400":
+          description: Некорректный формат запроса
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Некорректный формат запроса
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: PR не найден
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Переназначить конкретного ревьювера на другого из его команды
+      tags:
+      - PullRequests
   /team/add:
     post:
       consumes:
       - application/json
-      description: Creates a new team with members. If a member already exists, it
-        will be updated. Reassigns PRs for existing members.
+      description: Создаёт новую команду. Если пользователь уже в другой команде,
+        PR пользователя переназначается на участников старой команды.
       parameters:
-      - description: Team data
+      - description: Данные команды
         in: body
         name: team
         required: true
@@ -56,18 +299,147 @@ paths:
       - application/json
       responses:
         "201":
-          description: Team successfully created
+          description: Команда создана
           schema:
             $ref: '#/definitions/dto.TeamResponse'
         "400":
-          description: Bad request, invalid data
+          description: Команда уже существует или некоректный запрос
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
         "500":
-          description: Internal server error
+          description: Внутренняя ошибка сервера
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
-      summary: Add a new team
+      summary: Создание новой команды
       tags:
       - team
+  /team/get_team/{team_name}:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает информацию о команде и её участниках. Доступ разрешён
+        только для участников команды.
+      parameters:
+      - description: токен пользователя(Вводить без Bearer)
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Уникальное имя команды
+        in: path
+        name: team_name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Обьект команды
+          schema:
+            $ref: '#/definitions/dto.TeamResponse'
+        "400":
+          description: Пустое имя команды
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Доступ запрещён, пользователь не в команде
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Команда не найдена
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Получение информации о команде
+      tags:
+      - team
+  /users/getReview/{user_id}:
+    get:
+      description: Получить PR'ы, где пользователь назначен ревьювером
+      parameters:
+      - description: Id пользователя
+        in: path
+        name: user_id
+        required: true
+        type: string
+      - description: токен пользователя(Вводить без Bearer)
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Список PR'ов пользователя
+          schema:
+            $ref: '#/definitions/dto.UsersPrResponse'
+        "400":
+          description: Некорректный формат запроса
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Некорректный формат запроса
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Пользователь не найден
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Получить PR'ы, где пользователь назначен ревьювером
+      tags:
+      - Users
+  /users/setIsActive:
+    post:
+      consumes:
+      - application/json
+      description: Позволяет изменить статус активности пользователя (активен/неактивен).
+        Доступно только администраторам.
+      parameters:
+      - description: токен администратора(Вводить без Bearer)
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Данные пользователя для изменения статуса активности
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SetUserActive'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Обновлённый пользователь
+          schema:
+            $ref: '#/definitions/dto.UserResponse'
+        "400":
+          description: Некорректные данные запроса
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Нет/неверный админский токен
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Пользователь не найден
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Установить флаг активности пользователя
+      tags:
+      - Users
 swagger: "2.0"

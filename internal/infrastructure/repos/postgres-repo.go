@@ -16,6 +16,8 @@ import (
 
 var (
 	ErrNoUserWithId = errors.New("No user with this ID")
+	ErrTeamNotFound = errors.New("team with this Name not found")
+	ErrPrNotFound   = errors.New("Pull request with this id is not found")
 )
 
 type PostgresRepo struct {
@@ -50,6 +52,7 @@ func (p *PostgresRepo) AddTeam(ctx context.Context, name string, users []entityU
 		}
 	}
 	for _, user := range users {
+
 		if err := addUserTx(ctx, tx, user, teamID); err != nil {
 			tx.Rollback()
 			return fmt.Errorf("error inserting or updating user %s: %w", user.Id, err)
@@ -80,6 +83,9 @@ func addUserTx(ctx context.Context, tx *sqlx.Tx, user entityUser.User, teamID in
 func (p *PostgresRepo) GetTeam(ctx context.Context, id int) (*entityTeam.Team, error) {
 	var team dto.TeamDto
 	if err := p.db.GetContext(ctx, &team, `SELECT id, team_name FROM teams WHERE id = $1`, id); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrTeamNotFound
+		}
 		return nil, err
 	}
 	var users []dto.UserDto
@@ -104,6 +110,9 @@ func (p *PostgresRepo) GetTeam(ctx context.Context, id int) (*entityTeam.Team, e
 func (p *PostgresRepo) GetTeamByName(ctx context.Context, name string) (*entityTeam.Team, error) {
 	var team dto.TeamDto
 	if err := p.db.GetContext(ctx, &team, `SELECT id, team_name FROM teams WHERE team_name = $1`, name); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrTeamNotFound
+		}
 		return nil, fmt.Errorf("failed to get team by name %s: %w", name, err)
 	}
 
@@ -134,15 +143,15 @@ func (p *PostgresRepo) AddPR(ctx context.Context, pr entityPr.PullRequest) error
 		return fmt.Errorf("error beginning transaction: %w", err)
 	}
 	defer func() {
-		if err != nil {
+		if r := recover(); r != nil {
 			_ = tx.Rollback()
+			panic(r)
 		}
 	}()
 	queryPR := `
 		INSERT INTO pull_requests (
 			pull_request_id, pull_request_name, author_id, status, need_more_reviewers, created_at, merged_at)
-			VALUES ($1, $2, $3, $4, $5, $6, $7)`
-
+		VALUES ($1, $2, $3, $4, $5, $6, $7)`
 	_, err = tx.ExecContext(ctx, queryPR,
 		pr.Id,
 		pr.Name,
@@ -153,21 +162,24 @@ func (p *PostgresRepo) AddPR(ctx context.Context, pr entityPr.PullRequest) error
 		pr.MergedAt,
 	)
 	if err != nil {
+		_ = tx.Rollback()
 		return fmt.Errorf("error inserting pull request: %w", err)
 	}
 	if len(pr.Reviewers) > 0 {
 		queryReviewer := `INSERT INTO pull_request_reviewers (pull_request_id, reviewer_id)
 			VALUES ($1, $2)`
 		for _, reviewer := range pr.Reviewers {
-			_, err = tx.ExecContext(ctx, queryReviewer, pr.Id, reviewer.Id)
-			if err != nil {
+			if _, err := tx.ExecContext(ctx, queryReviewer, pr.Id, reviewer.Id); err != nil {
+				_ = tx.Rollback()
 				return fmt.Errorf("error inserting reviewer %s: %w", reviewer.Id, err)
 			}
 		}
 	}
-	if err = tx.Commit(); err != nil {
+
+	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("error committing transaction: %w", err)
 	}
+
 	return nil
 }
 
@@ -177,6 +189,9 @@ func (p *PostgresRepo) GetPr(ctx context.Context, prID string) (*entityPr.PullRe
         FROM pull_requests
         WHERE pull_request_id = $1`
 	if err := p.db.GetContext(ctx, &prDto, queryPR, prID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrPrNotFound
+		}
 		return nil, fmt.Errorf("error getting pull request: %w", err)
 	}
 	var reviewerIDs []string
@@ -218,19 +233,16 @@ func (p *PostgresRepo) UpdatePr(ctx context.Context, prId string, newPr entityPr
 		tx.Rollback()
 		return fmt.Errorf("error updating pull_request: %w", err)
 	}
-	if len(newPr.Reviewers) > 0 {
-		_, err := tx.ExecContext(ctx, `DELETE FROM pull_request_reviewers WHERE pull_request_id = $1`, prId)
+	_, err = tx.ExecContext(ctx, `DELETE FROM pull_request_reviewers WHERE pull_request_id = $1`, prId)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("delete old reviewers: %w", err)
+	}
+	for _, r := range newPr.Reviewers {
+		_, err := tx.ExecContext(ctx, `INSERT INTO pull_request_reviewers (pull_request_id, reviewer_id) VALUES ($1, $2)`, prId, r.Id)
 		if err != nil {
 			tx.Rollback()
-			return fmt.Errorf("delete old reviewers: %w", err)
-		}
-		for _, r := range newPr.Reviewers {
-			_, err := tx.ExecContext(ctx, `INSERT INTO pull_request_reviewers (pull_request_id, reviewer_id)
-                VALUES ($1, $2)`, prId, r.Id)
-			if err != nil {
-				tx.Rollback()
-				return fmt.Errorf("error inserting new reviewer %s: %w", r.Id, err)
-			}
+			return fmt.Errorf("error inserting new reviewer %s: %w", r.Id, err)
 		}
 	}
 
@@ -337,11 +349,168 @@ func (p *PostgresRepo) GetUserByID(ctx context.Context, userID string) (*entityU
 
 func (p *PostgresRepo) RemoveReviewerFromAllPR(ctx context.Context, reviewerID string) error {
 	_, err := p.db.ExecContext(ctx, `
-		DELETE FROM pull_request_reviewers
-		WHERE reviewer_id = $1
-	`, reviewerID)
+        DELETE FROM pull_request_reviewers
+        WHERE reviewer_id = $1
+        AND pull_request_id IN (
+            SELECT pull_request_id
+            FROM pull_requests
+            WHERE status != 'MERGED'
+        )
+    `, reviewerID)
 	if err != nil {
 		return fmt.Errorf("failed to remove reviewer %s from pull_request_reviewers: %w", reviewerID, err)
 	}
 	return nil
+}
+
+func (p *PostgresRepo) UpdateUser(ctx context.Context, u entityUser.User) error {
+	query := `UPDATE users
+        SET 
+            username = $1,
+            team_id = $2,
+            is_active = $3
+        WHERE user_id = $4`
+	res, err := p.db.ExecContext(ctx, query,
+		u.Name,
+		u.TeamID,
+		u.IsActive,
+		u.Id,
+	)
+	if err != nil {
+		return fmt.Errorf("error updating user: %w", err)
+	}
+
+	rows, _ := res.RowsAffected()
+	if rows == 0 {
+		return ErrNoUserWithId
+	}
+
+	return nil
+}
+
+func (p *PostgresRepo) GetUserWithTeam(ctx context.Context, userID string) (*entityUser.User, string, error) {
+	query := `SELECT 
+            u.user_id,
+            u.username,
+            u.team_id,
+            u.is_active,
+            t.team_name
+        FROM users u
+        LEFT JOIN teams t ON t.id = u.team_id
+        WHERE u.user_id = $1`
+
+	var dto struct {
+		Id       string `db:"user_id"`
+		Name     string `db:"username"`
+		TeamID   int    `db:"team_id"`
+		IsActive bool   `db:"is_active"`
+		TeamName string `db:"team_name"`
+	}
+
+	err := p.db.GetContext(ctx, &dto, query, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, "", ErrNoUserWithId
+		}
+		return nil, "", err
+	}
+
+	u := &entityUser.User{
+		Id:       dto.Id,
+		Name:     dto.Name,
+		TeamID:   dto.TeamID,
+		IsActive: dto.IsActive,
+	}
+
+	return u, dto.TeamName, nil
+}
+
+func (p *PostgresRepo) AddReviewerToPR(ctx context.Context, prId string, reviewerID string) error {
+	_, err := p.db.ExecContext(ctx, `
+        INSERT INTO pull_request_reviewers (pull_request_id, reviewer_id)
+        VALUES ($1, $2)
+        ON CONFLICT DO NOTHING
+    `, prId, reviewerID)
+	return err
+}
+
+func (p *PostgresRepo) GetTeamPr(ctx context.Context, teamID int) ([]entityPr.PullRequest, error) {
+	query := `
+		SELECT
+			pr.pull_request_id,
+			pr.pull_request_name,
+			pr.author_id,
+			pr.status,
+			pr.need_more_reviewers,
+			pr.created_at,
+			pr.merged_at,
+			r.reviewer_id
+		FROM pull_requests pr
+		LEFT JOIN pull_request_reviewers r
+			ON pr.pull_request_id = r.pull_request_id
+		WHERE 
+			pr.author_id IN (SELECT user_id FROM users WHERE team_id = $1)
+			OR
+			pr.pull_request_id IN (
+				SELECT pull_request_id 
+				FROM pull_request_reviewers
+				WHERE reviewer_id IN (SELECT user_id FROM users WHERE team_id = $1)
+			)
+		ORDER BY pr.created_at DESC;
+	`
+
+	rows, err := p.db.QueryxContext(ctx, query, teamID)
+	if err != nil {
+		return nil, fmt.Errorf("query team PRs: %w", err)
+	}
+	defer rows.Close()
+
+	prMap := make(map[string]*entityPr.PullRequest)
+
+	for rows.Next() {
+		var (
+			prID, prName, authorID, status sql.NullString
+			reviewerID                     sql.NullString
+			needMore                       sql.NullBool
+			createdAt, mergedAt            sql.NullTime
+		)
+
+		if err := rows.Scan(
+			&prID, &prName, &authorID, &status,
+			&needMore, &createdAt, &mergedAt,
+			&reviewerID,
+		); err != nil {
+			return nil, fmt.Errorf("scan error: %w", err)
+		}
+
+		key := prID.String
+		pr, ok := prMap[key]
+		if !ok {
+			pr = &entityPr.PullRequest{
+				Id:                prID.String,
+				Name:              prName.String,
+				Author:            entityUser.User{Id: authorID.String},
+				Status:            status.String,
+				NeedMoreReviewers: needMore.Bool,
+				CreatedAt:         createdAt.Time,
+			}
+			if mergedAt.Valid {
+				pr.MergedAt = &mergedAt.Time
+			}
+			prMap[key] = pr
+		}
+
+		if reviewerID.Valid {
+			pr.Reviewers = append(pr.Reviewers,
+				entityUser.User{Id: reviewerID.String},
+			)
+		}
+	}
+
+	result := make([]entityPr.PullRequest, 0, len(prMap))
+	for _, pr := range prMap {
+		result = append(result, *pr)
+	}
+
+	return result, nil
 }
