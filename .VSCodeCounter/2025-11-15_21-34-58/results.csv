@@ -1,0 +1,35 @@
+"filename", "language", "YAML", "Markdown", "Docker", "Go Module File", "MS SQL", "JSON", "Go", "Go Checksum File", "comment", "blank", "total"
+"d:\AvitoTech\Dockerfile", "Docker", 0, 0, 11, 0, 0, 0, 0, 0, 0, 7, 18
+"d:\AvitoTech\README.md", "Markdown", 0, 2, 0, 0, 0, 0, 0, 0, 0, 1, 3
+"d:\AvitoTech\cmd\main.go", "Go", 0, 0, 0, 0, 0, 0, 62, 0, 0, 8, 70
+"d:\AvitoTech\config\config-example.yaml", "YAML", 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5
+"d:\AvitoTech\docker-compose.yaml", "YAML", 51, 0, 0, 0, 0, 0, 0, 0, 0, 4, 55
+"d:\AvitoTech\docs\docs.go", "Go", 0, 0, 0, 0, 0, 0, 698, 0, 2, 5, 705
+"d:\AvitoTech\docs\swagger.json", "JSON", 0, 0, 0, 0, 0, 675, 0, 0, 0, 0, 675
+"d:\AvitoTech\docs\swagger.yaml", "YAML", 445, 0, 0, 0, 0, 0, 0, 0, 0, 1, 446
+"d:\AvitoTech\go.mod", "Go Module File", 0, 0, 0, 60, 0, 0, 0, 0, 0, 4, 64
+"d:\AvitoTech\go.sum", "Go Checksum File", 0, 0, 0, 0, 0, 0, 0, 185, 0, 1, 186
+"d:\AvitoTech\internal\application\pr-service.go", "Go", 0, 0, 0, 0, 0, 0, 401, 0, 0, 36, 437
+"d:\AvitoTech\internal\config\config.go", "Go", 0, 0, 0, 0, 0, 0, 30, 0, 0, 10, 40
+"d:\AvitoTech\internal\di\di.go", "Go", 0, 0, 0, 0, 0, 0, 22, 0, 0, 4, 26
+"d:\AvitoTech\internal\domain\interfaces\pr-repo.go", "Go", 0, 0, 0, 0, 0, 0, 22, 0, 0, 4, 26
+"d:\AvitoTech\internal\domain\interfaces\pr-service.go", "Go", 0, 0, 0, 0, 0, 0, 19, 0, 0, 4, 23
+"d:\AvitoTech\internal\domain\pullrequest\entity.go", "Go", 0, 0, 0, 0, 0, 0, 15, 0, 0, 4, 19
+"d:\AvitoTech\internal\domain\team\entity.go", "Go", 0, 0, 0, 0, 0, 0, 7, 0, 0, 3, 10
+"d:\AvitoTech\internal\domain\user\entity.go", "Go", 0, 0, 0, 0, 0, 0, 7, 0, 0, 2, 9
+"d:\AvitoTech\internal\infrastructure\db\postgres-config.go", "Go", 0, 0, 0, 0, 0, 0, 20, 0, 0, 4, 24
+"d:\AvitoTech\internal\infrastructure\db\postgres-connection.go", "Go", 0, 0, 0, 0, 0, 0, 24, 0, 1, 4, 29
+"d:\AvitoTech\internal\infrastructure\repos\dto\pr-dto.go", "Go", 0, 0, 0, 0, 0, 0, 16, 0, 0, 4, 20
+"d:\AvitoTech\internal\infrastructure\repos\dto\team-dto.go", "Go", 0, 0, 0, 0, 0, 0, 5, 0, 0, 2, 7
+"d:\AvitoTech\internal\infrastructure\repos\dto\user-dto.go", "Go", 0, 0, 0, 0, 0, 0, 7, 0, 0, 2, 9
+"d:\AvitoTech\internal\infrastructure\repos\postgres-repo.go", "Go", 0, 0, 0, 0, 0, 0, 464, 0, 0, 54, 518
+"d:\AvitoTech\internal\presentation\gin\dto\requests.go", "Go", 0, 0, 0, 0, 0, 0, 31, 0, 0, 8, 39
+"d:\AvitoTech\internal\presentation\gin\dto\responses.go", "Go", 0, 0, 0, 0, 0, 0, 72, 0, 1, 18, 91
+"d:\AvitoTech\internal\presentation\gin\handlers.go", "Go", 0, 0, 0, 0, 0, 0, 534, 0, 104, 27, 665
+"d:\AvitoTech\internal\presentation\gin\middleware.go", "Go", 0, 0, 0, 0, 0, 0, 66, 0, 4, 7, 77
+"d:\AvitoTech\internal\presentation\gin\routes.go", "Go", 0, 0, 0, 0, 0, 0, 30, 0, 0, 5, 35
+"d:\AvitoTech\logger\logger.go", "Go", 0, 0, 0, 0, 0, 0, 23, 0, 0, 4, 27
+"d:\AvitoTech\migrations\20251112151717_add_basic_table.sql", "MS SQL", 0, 0, 0, 0, 33, 0, 0, 0, 6, 6, 45
+"d:\AvitoTech\migrations\20251114221224_add_constrait.sql", "MS SQL", 0, 0, 0, 0, 4, 0, 0, 0, 6, 1, 11
+"d:\AvitoTech\openapi.yml", "YAML", 431, 0, 0, 0, 0, 0, 0, 0, 0, 10, 441
+"Total", "-", 932, 2, 11, 60, 37, 675, 2575, 185, 124, 254, 4855

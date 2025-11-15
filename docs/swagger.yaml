@@ -313,7 +313,7 @@ paths:
       summary: Создание новой команды
       tags:
       - team
-  /team/get_team/{team_name}:
+  /team/get:
     get:
       consumes:
       - application/json
@@ -326,7 +326,7 @@ paths:
         required: true
         type: string
       - description: Уникальное имя команды
-        in: path
+        in: query
         name: team_name
         required: true
         type: string
@@ -360,18 +360,18 @@ paths:
       summary: Получение информации о команде
       tags:
       - team
-  /users/getReview/{user_id}:
+  /users/getReview:
     get:
       description: Получить PR'ы, где пользователь назначен ревьювером
       parameters:
-      - description: Id пользователя
-        in: path
-        name: user_id
-        required: true
-        type: string
-      - description: токен пользователя(Вводить без Bearer)
+      - description: токен пользователя (вводить без Bearer)
         in: header
         name: Authorization
+        required: true
+        type: string
+      - description: Id пользователя
+        in: query
+        name: user_id
         required: true
         type: string
       responses:
@@ -384,7 +384,7 @@ paths:
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
         "401":
-          description: Некорректный формат запроса
+          description: Пользователь не авторизован
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
         "404":

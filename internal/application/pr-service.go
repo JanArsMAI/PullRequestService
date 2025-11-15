@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/JanArsMAI/PullRequestService/internal/domain/interfaces"
 	entity "github.com/JanArsMAI/PullRequestService/internal/domain/pullrequest"
 	entityPR "github.com/JanArsMAI/PullRequestService/internal/domain/pullrequest"
 	entityTeam "github.com/JanArsMAI/PullRequestService/internal/domain/team"
@@ -30,10 +31,10 @@ var (
 )
 
 type PrService struct {
-	repo *repos.PostgresRepo
+	repo interfaces.PullRequestRepo
 }
 
-func NewPrService(repo *repos.PostgresRepo) *PrService {
+func NewPrService(repo interfaces.PullRequestRepo) interfaces.PrService {
 	return &PrService{
 		repo: repo,
 	}
@@ -114,8 +115,6 @@ func (s *PrService) ReassignPullRequest(ctx context.Context, activePr entityPR.P
 		}
 		return fmt.Errorf("failed to get team for user %s: %w", user.Id, err)
 	}
-
-	// Удаляем старого ревьюера
 	filtered := make([]entityUser.User, 0, len(activePr.Reviewers))
 	for _, r := range activePr.Reviewers {
 		if r.Id != user.Id {
@@ -123,8 +122,6 @@ func (s *PrService) ReassignPullRequest(ctx context.Context, activePr entityPR.P
 		}
 	}
 	activePr.Reviewers = filtered
-
-	// Считаем активных ревьюеров
 	activeCount := 0
 	for _, r := range activePr.Reviewers {
 		for _, tUser := range team.Users {
@@ -134,13 +131,9 @@ func (s *PrService) ReassignPullRequest(ctx context.Context, activePr entityPR.P
 			}
 		}
 	}
-
-	// Если меньше 2, NeedMoreReviewers = true
 	if activeCount < 2 {
 		activePr.NeedMoreReviewers = true
 	}
-
-	// Добавляем нового ревьюера из команды
 	candidates := make([]entityUser.User, 0)
 	for _, candidate := range team.Users {
 		if candidate.Id != user.Id &&
@@ -149,19 +142,14 @@ func (s *PrService) ReassignPullRequest(ctx context.Context, activePr entityPR.P
 			candidates = append(candidates, candidate)
 		}
 	}
-
 	if len(candidates) > 0 {
 		rand.Shuffle(len(candidates), func(i, j int) { candidates[i], candidates[j] = candidates[j], candidates[i] })
 		activePr.Reviewers = append(activePr.Reviewers, candidates[0])
-
-		// После добавления ещё раз проверяем NeedMoreReviewers
 		activeCount++
 		if activeCount >= 2 {
 			activePr.NeedMoreReviewers = false
 		}
 	}
-
-	// Уникальные ревьюеры
 	seen := make(map[string]struct{})
 	unique := make([]entityUser.User, 0)
 	for _, r := range activePr.Reviewers {
@@ -401,8 +389,6 @@ func (s *PrService) Reassign(ctx context.Context, prID, oldReviewerID string) (*
 	if err != nil {
 		return nil, "", fmt.Errorf("cannot get team: %w", err)
 	}
-
-	// ищем активных кандидатов для замены
 	candidates := make([]entityUser.User, 0)
 	for _, u := range team.Users {
 		if u.IsActive && u.Id != oldReviewerID {
