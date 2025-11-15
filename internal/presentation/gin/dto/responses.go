@@ -61,8 +61,6 @@ type PullRequestOfUser struct {
 	Status   string `json:"status"`
 }
 
-//TODO: после заверщения и тестирования бахнуть рефакторинг responses, чтобы было omitempty и универсальность
-
 type MergeResponse struct {
 	Pr MergedPullRequestOfUser `json:"pr"`
 }

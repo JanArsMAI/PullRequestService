@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/JanArsMAI/PullRequestService/internal/application"
+	"github.com/JanArsMAI/PullRequestService/internal/domain/interfaces"
 	"github.com/JanArsMAI/PullRequestService/internal/presentation/gin/dto"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -18,11 +19,11 @@ import (
 // @schemes http https
 
 type Handlers struct {
-	svc    *application.PrService
+	svc    interfaces.PrService
 	logger *zap.Logger
 }
 
-func NewHandlers(service *application.PrService, logger *zap.Logger) *Handlers {
+func NewHandlers(service interfaces.PrService, logger *zap.Logger) *Handlers {
 	return &Handlers{
 		svc:    service,
 		logger: logger,
@@ -35,6 +36,8 @@ const (
 	CodeUnauthorized = "UNAUTHORIZED"
 	CodeForbidden    = "FORBIDDEN"
 	CodePrExists     = "PR_EXISTS"
+	CodeNoCandidate  = "NO_CANDIDATE"
+	CodeNotAssigned  = "NOT_ASSIGNED"
 )
 
 // AddTeam godoc
@@ -122,14 +125,14 @@ func (h *Handlers) AddTeam(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "токен пользователя(Вводить без Bearer)"
-// @Param team_name path string true "Уникальное имя команды"
+// @Param team_name query string true "Уникальное имя команды"
 // @Success 200 {object} dto.TeamResponse "Обьект команды"
 // @Failure 400 {object} dto.ErrorResponse "Пустое имя команды"
 // @Failure 401 {object} dto.ErrorResponse "Пользователь не авторизован"
 // @Failure 403 {object} dto.ErrorResponse "Доступ запрещён, пользователь не в команде"
 // @Failure 404 {object} dto.ErrorResponse "Команда не найдена"
 // @Failure 500 {object} dto.ErrorResponse "Внутренняя ошибка сервера"
-// @Router /team/get_team/{team_name} [get]
+// @Router /team/get [get]
 func (h *Handlers) GetTeam(ctx *gin.Context) {
 	//сымитируем проверку токена пользователя: токен - это idпользователя, для упрощения
 	//реализации было сделано так
@@ -144,13 +147,13 @@ func (h *Handlers) GetTeam(ctx *gin.Context) {
 		})
 		return
 	}
-	par := ctx.Param("team_name")
+	par := ctx.Query("team_name")
 	if par == "" {
-		h.logger.Warn("GetTeam: empty team_name parameter")
+		h.logger.Warn("GetTeam: empty team_name query parameter")
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, dto.ErrorResponse{
 			Error: dto.ErrorMessage{
 				Code:    CodeBadRequest,
-				Message: "No choosen team for getting info",
+				Message: "team_name query parameter is required",
 			},
 		})
 		return
@@ -385,14 +388,14 @@ func (h *Handlers) CreatePR(ctx *gin.Context) {
 // @Summary Получить PR'ы, где пользователь назначен ревьювером
 // @Description Получить PR'ы, где пользователь назначен ревьювером
 // @Tags Users
-// @Param user_id path string true "Id пользователя"
-// @Param Authorization header string true "токен пользователя(Вводить без Bearer)"
+// @Param Authorization header string true "токен пользователя (вводить без Bearer)"
+// @Param user_id query string true "Id пользователя"
 // @Success 200 {object} dto.UsersPrResponse "Список PR'ов пользователя"
 // @Failure 400 {object} dto.ErrorResponse "Некорректный формат запроса"
-// @Failure 401 {object} dto.ErrorResponse "Некорректный формат запроса"
+// @Failure 401 {object} dto.ErrorResponse "Пользователь не авторизован"
 // @Failure 404 {object} dto.ErrorResponse "Пользователь не найден"
 // @Failure 500 {object} dto.ErrorResponse "Внутренняя ошибка сервера"
-// @Router /users/getReview/{user_id} [get]
+// @Router /users/getReview [get]
 func (h *Handlers) GetUsersPr(ctx *gin.Context) {
 	_, ok := ctx.Get("User_Id")
 	if !ok {
@@ -405,7 +408,7 @@ func (h *Handlers) GetUsersPr(ctx *gin.Context) {
 		})
 		return
 	}
-	par := ctx.Param("user_id")
+	par := ctx.Query("user_id")
 	if par == "" {
 		h.logger.Warn("GetUsersPr: empty user_id parameter")
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, dto.ErrorResponse{
@@ -619,17 +622,17 @@ func (h *Handlers) Reasign(ctx *gin.Context) {
 		case application.ErrNoCandidate:
 			ctx.AbortWithStatusJSON(http.StatusNotFound, dto.ErrorResponse{
 				Error: dto.ErrorMessage{
-					Code:    CodeNotFound,
-					Message: "no candidate to reassign PR",
+					Code:    CodeNoCandidate,
+					Message: "no available reviewer",
 				},
 			})
-			h.logger.Warn(" no candidate to reassign PR", zap.String("pr_id", body.PrID))
+			h.logger.Warn("no available reviewer to reassign PR", zap.String("pr_id", body.PrID))
 			return
 		case application.ErrNotAssigned:
 			ctx.AbortWithStatusJSON(http.StatusNotFound, dto.ErrorResponse{
 				Error: dto.ErrorMessage{
-					Code:    CodeNotFound,
-					Message: "user is not assigned to this PR",
+					Code:    CodeNotAssigned,
+					Message: "reviewer is not assigned to this PR",
 				},
 			})
 			h.logger.Warn(" no candidate to reassign PR", zap.String("pr_id", body.PrID))

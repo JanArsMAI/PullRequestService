@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/JanArsMAI/PullRequestService/internal/domain/interfaces"
 	entityPr "github.com/JanArsMAI/PullRequestService/internal/domain/pullrequest"
 	entityTeam "github.com/JanArsMAI/PullRequestService/internal/domain/team"
 	entityUser "github.com/JanArsMAI/PullRequestService/internal/domain/user"
@@ -24,7 +25,7 @@ type PostgresRepo struct {
 	db *sqlx.DB
 }
 
-func NewPostgresRepo(db *sqlx.DB) *PostgresRepo {
+func NewPostgresRepo(db *sqlx.DB) interfaces.PullRequestRepo {
 	return &PostgresRepo{
 		db: db,
 	}

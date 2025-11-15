@@ -241,7 +241,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/team/get_team/{team_name}": {
+        "/team/get": {
             "get": {
                 "description": "Возвращает информацию о команде и её участниках. Доступ разрешён только для участников команды.",
                 "consumes": [
@@ -266,7 +266,7 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Уникальное имя команды",
                         "name": "team_name",
-                        "in": "path",
+                        "in": "query",
                         "required": true
                     }
                 ],
@@ -310,7 +310,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/users/getReview/{user_id}": {
+        "/users/getReview": {
             "get": {
                 "description": "Получить PR'ы, где пользователь назначен ревьювером",
                 "tags": [
@@ -320,16 +320,16 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Id пользователя",
-                        "name": "user_id",
-                        "in": "path",
+                        "description": "токен пользователя (вводить без Bearer)",
+                        "name": "Authorization",
+                        "in": "header",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "токен пользователя(Вводить без Bearer)",
-                        "name": "Authorization",
-                        "in": "header",
+                        "description": "Id пользователя",
+                        "name": "user_id",
+                        "in": "query",
                         "required": true
                     }
                 ],
@@ -347,7 +347,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Некорректный формат запроса",
+                        "description": "Пользователь не авторизован",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
