@@ -1,0 +1,5 @@
+app:
+  server:
+    port: 8080
+  logging:
+    level: info #можно поставить уровень логирования debug
