@@ -102,11 +102,7 @@ func (h *Handlers) AddTeam(ctx *gin.Context) {
 	}
 	members := make([]dto.MemberDtoResponse, 0, len(body.Members))
 	for _, user := range body.Members {
-		members = append(members, dto.MemberDtoResponse{
-			Id:       user.Id,
-			Name:     user.Name,
-			IsActive: user.IsActive,
-		})
+		members = append(members, dto.MemberDtoResponse(user))
 	}
 	resp := dto.TeamResponse{
 		Team: dto.TeamDtoResponse{
@@ -242,7 +238,7 @@ func (h *Handlers) SetIsActive(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, dto.ErrorResponse{
 			Error: dto.ErrorMessage{
 				Code:    CodeBadRequest,
-				Message: "No choosen user for changing info",
+				Message: "No chosen user for changing info",
 			},
 		})
 		return
@@ -315,7 +311,7 @@ func (h *Handlers) CreatePR(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, dto.ErrorResponse{
 			Error: dto.ErrorMessage{
 				Code:    CodeBadRequest,
-				Message: "No choosen author for creating PR",
+				Message: "No chosen author for creating PR",
 			},
 		})
 		return
@@ -325,7 +321,7 @@ func (h *Handlers) CreatePR(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, dto.ErrorResponse{
 			Error: dto.ErrorMessage{
 				Code:    CodeBadRequest,
-				Message: "No choosen PR id for creating PR",
+				Message: "No chosen PR id for creating PR",
 			},
 		})
 		return
@@ -335,7 +331,7 @@ func (h *Handlers) CreatePR(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, dto.ErrorResponse{
 			Error: dto.ErrorMessage{
 				Code:    CodeBadRequest,
-				Message: "No choosen PR name for creating PR",
+				Message: "No chosen PR name for creating PR",
 			},
 		})
 		return
@@ -414,7 +410,7 @@ func (h *Handlers) GetUsersPr(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, dto.ErrorResponse{
 			Error: dto.ErrorMessage{
 				Code:    CodeBadRequest,
-				Message: "No choosen user for getting PR",
+				Message: "No chosen user for getting PR",
 			},
 		})
 		return
@@ -661,4 +657,90 @@ func (h *Handlers) Reasign(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, resp)
 	h.logger.Info("successfully reassigned PR", zap.String("pr_id", body.PrID), zap.String("replaced_by", replacedBy))
+}
+
+// GetStats godoc
+// @Summary Получить статистику PR
+// @Description Возвращает статистику по количеству ревьюеров на PR и по количеству PR, рассмотренных каждым пользователем
+// @Tags Stats
+// @Param Authorization header string true "токен администратора(Вводить без Bearer)"
+// @Success 200 {object} dto.StatsResponse "Статистика успешно получена"
+// @Failure 401 {object} dto.ErrorResponse "Неавторизованный доступ"
+// @Failure 500 {object} dto.ErrorResponse "Внутренняя ошибка сервера"
+// @Router /stats/get [get]
+func (h *Handlers) GetStats(ctx *gin.Context) {
+	var resp dto.StatsResponse
+	byUser, byPr, err := h.svc.GetStatistics(ctx)
+	if err != nil {
+		h.logger.Error("error getting stats", zap.Error(err))
+		ctx.AbortWithStatus(http.StatusInternalServerError)
+	}
+	resp.ByPR = byPr
+	resp.ByUser = byUser
+	ctx.JSON(http.StatusOK, resp)
+	h.logger.Info("successfully given stats")
+}
+
+// Deactivation godoc
+// @Summary Деактивировать пользователей команды
+// @Description Массово деактивирует пользователей указанной команды и безопасно переназначает их открытые PR другим активным участникам
+// @Tags Deactivation
+// @Param Authorization header string true "токен администратора(Вводить без Bearer)"
+// @Param body body dto.DeactivationRequest true "Тело запроса с ID пользователей и названием команды"
+// @Success 200 {string} string "Пользователи успешно деактивированы"
+// @Failure 400 {object} dto.ErrorResponse "Некорректный запрос (пустой teamName или userIDs)"
+// @Failure 401 {object} dto.ErrorResponse "Неавторизованный доступ"
+// @Failure 404 {object} dto.ErrorResponse "Команда не найдена"
+// @Failure 500 {object} dto.ErrorResponse "Внутренняя ошибка сервера"
+// @Router /deactivate/use [post]
+func (h *Handlers) Deactivation(ctx *gin.Context) {
+	var body dto.DeactivationRequest
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error: dto.ErrorMessage{
+				Code:    CodeBadRequest,
+				Message: "Invalid users deactivation body",
+			},
+		})
+		h.logger.Warn("invalid users deactivation body", zap.Error(err))
+		return
+	}
+	if body.TeamName == "" {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error: dto.ErrorMessage{
+				Code:    CodeBadRequest,
+				Message: "Empty TeamName",
+			},
+		})
+		h.logger.Warn("invalid users deactivation body, empty Team Name")
+		return
+	}
+	if len(body.UserIDs) == 0 {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error: dto.ErrorMessage{
+				Code:    CodeBadRequest,
+				Message: "Empty users id",
+			},
+		})
+		h.logger.Warn("invalid users deactivation body, empty users id")
+		return
+	}
+
+	err := h.svc.Deactivate(ctx, body.TeamName, body.UserIDs)
+	if err != nil {
+		if errors.Is(err, application.ErrTeamNotFound) {
+			ctx.AbortWithStatusJSON(http.StatusNotFound, dto.ErrorResponse{
+				Error: dto.ErrorMessage{
+					Code:    CodeNotFound,
+					Message: "no team found",
+				},
+			})
+			h.logger.Warn("no team found to Deactivate users", zap.String("team_id", body.TeamName))
+			return
+		}
+		h.logger.Error("error while deactivating users", zap.Error(err))
+		ctx.AbortWithStatus(http.StatusInternalServerError)
+	}
+	ctx.Status(http.StatusOK)
+	h.logger.Info("deactivated users", zap.String("team_name", body.TeamName))
 }

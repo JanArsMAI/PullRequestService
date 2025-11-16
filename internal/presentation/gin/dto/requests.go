@@ -36,3 +36,8 @@ type ReassignPullRequest struct {
 	PrID        string `json:"pull_request_id"`
 	OldReviewer string `json:"old_reviewer_id"`
 }
+
+type DeactivationRequest struct {
+	TeamName string   `json:"team_name"`
+	UserIDs  []string `json:"user_ids"`
+}

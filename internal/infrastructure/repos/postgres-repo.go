@@ -44,18 +44,18 @@ func (p *PostgresRepo) AddTeam(ctx context.Context, name string, users []entityU
 	if err := tx.QueryRowContext(ctx, queryTeam, name).Scan(&teamID); err != nil {
 		if err == sql.ErrNoRows {
 			if err := tx.GetContext(ctx, &teamID, `SELECT id FROM teams WHERE team_name=$1`, name); err != nil {
-				tx.Rollback()
+				_ = tx.Rollback()
 				return fmt.Errorf("error getting existing team id: %w", err)
 			}
 		} else {
-			tx.Rollback()
+			_ = tx.Rollback()
 			return fmt.Errorf("error inserting team: %w", err)
 		}
 	}
 	for _, user := range users {
 
 		if err := addUserTx(ctx, tx, user, teamID); err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			return fmt.Errorf("error inserting or updating user %s: %w", user.Id, err)
 		}
 	}
@@ -231,18 +231,18 @@ func (p *PostgresRepo) UpdatePr(ctx context.Context, prId string, newPr entityPr
         WHERE pull_request_id = $4`
 	_, err = tx.ExecContext(ctx, queryUpdate, newPr.Status, newPr.NeedMoreReviewers, newPr.MergedAt, prId)
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return fmt.Errorf("error updating pull_request: %w", err)
 	}
 	_, err = tx.ExecContext(ctx, `DELETE FROM pull_request_reviewers WHERE pull_request_id = $1`, prId)
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return fmt.Errorf("delete old reviewers: %w", err)
 	}
 	for _, r := range newPr.Reviewers {
 		_, err := tx.ExecContext(ctx, `INSERT INTO pull_request_reviewers (pull_request_id, reviewer_id) VALUES ($1, $2)`, prId, r.Id)
 		if err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			return fmt.Errorf("error inserting new reviewer %s: %w", r.Id, err)
 		}
 	}
@@ -285,8 +285,9 @@ func (p *PostgresRepo) GetUsersPr(ctx context.Context, userId string, onlyActive
 	if err != nil {
 		return nil, fmt.Errorf("error querying user PRs: %w", err)
 	}
-	defer rows.Close()
-
+	defer func() {
+		_ = rows.Close()
+	}()
 	prMap := make(map[string]*entityPr.PullRequest)
 
 	for rows.Next() {
@@ -464,7 +465,9 @@ func (p *PostgresRepo) GetTeamPr(ctx context.Context, teamID int) ([]entityPr.Pu
 	if err != nil {
 		return nil, fmt.Errorf("query team PRs: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	prMap := make(map[string]*entityPr.PullRequest)
 
@@ -505,6 +508,79 @@ func (p *PostgresRepo) GetTeamPr(ctx context.Context, teamID int) ([]entityPr.Pu
 			pr.Reviewers = append(pr.Reviewers,
 				entityUser.User{Id: reviewerID.String},
 			)
+		}
+	}
+
+	result := make([]entityPr.PullRequest, 0, len(prMap))
+	for _, pr := range prMap {
+		result = append(result, *pr)
+	}
+
+	return result, nil
+}
+
+func (p *PostgresRepo) GetAllPRs(ctx context.Context) ([]entityPr.PullRequest, error) {
+	query := `
+		SELECT
+			pr.pull_request_id,
+			pr.pull_request_name,
+			pr.author_id,
+			pr.status,
+			pr.need_more_reviewers,
+			pr.created_at,
+			pr.merged_at,
+			r.reviewer_id
+		FROM pull_requests pr
+		LEFT JOIN pull_request_reviewers r
+			ON pr.pull_request_id = r.pull_request_id
+		ORDER BY pr.created_at DESC;
+	`
+
+	rows, err := p.db.QueryxContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("query all PRs: %w", err)
+	}
+	defer func() {
+		_ = rows.Close()
+	}()
+
+	prMap := make(map[string]*entityPr.PullRequest)
+
+	for rows.Next() {
+		var (
+			prID, prName, authorID, status sql.NullString
+			reviewerID                     sql.NullString
+			needMore                       sql.NullBool
+			createdAt, mergedAt            sql.NullTime
+		)
+
+		if err := rows.Scan(
+			&prID, &prName, &authorID, &status,
+			&needMore, &createdAt, &mergedAt,
+			&reviewerID,
+		); err != nil {
+			return nil, fmt.Errorf("scan error: %w", err)
+		}
+
+		key := prID.String
+		pr, ok := prMap[key]
+		if !ok {
+			pr = &entityPr.PullRequest{
+				Id:                prID.String,
+				Name:              prName.String,
+				Author:            entityUser.User{Id: authorID.String},
+				Status:            status.String,
+				NeedMoreReviewers: needMore.Bool,
+				CreatedAt:         createdAt.Time,
+			}
+			if mergedAt.Valid {
+				pr.MergedAt = &mergedAt.Time
+			}
+			prMap[key] = pr
+		}
+
+		if reviewerID.Valid {
+			pr.Reviewers = append(pr.Reviewers, entityUser.User{Id: reviewerID.String})
 		}
 	}
 

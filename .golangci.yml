@@ -1,0 +1,26 @@
+run:
+  timeout: 3m
+  tests: true
+
+linters:
+  enable:
+    - govet
+    - staticcheck
+    - gosimple
+    - ineffassign
+    - misspell
+    - errcheck
+    - gocyclo
+
+
+linters-settings:
+  gocyclo:
+    min-complexity: 25 #тут поставил чуть многовато, так как в некоторых методах svc логика сложная и много corner cases.
+
+  misspell:
+    locale: US
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
