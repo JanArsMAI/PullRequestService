@@ -86,3 +86,8 @@ type ReassignPR struct {
 	Status            string   `json:"status"`
 	AssignedReviewers []string `json:"assigned_reviewers"`
 }
+
+type StatsResponse struct {
+	ByUser map[string]int `json:"by_user"`
+	ByPR   map[string]int `json:"by_pr"`
+}

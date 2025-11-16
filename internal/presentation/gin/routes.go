@@ -30,5 +30,13 @@ func InitRoutes(r *gin.Engine, svc interfaces.PrService, logger *zap.Logger) {
 		apiPullRequests.POST("/merge", h.UserMiddleware(), h.Merge)
 		apiPullRequests.POST("/reassign", h.AdminMiddleware(), h.Reasign)
 	}
+	apiStats := r.Group("stats")
+	{
+		apiStats.GET("get", h.AdminMiddleware(), h.GetStats)
+	}
+	apiDeactivate := r.Group("deactivate")
+	{
+		apiDeactivate.POST("/use", h.AdminMiddleware(), h.Deactivation)
+	}
 	r.Use(CORSMiddleware())
 }

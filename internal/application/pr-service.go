@@ -241,7 +241,9 @@ func (s *PrService) SetUserActive(ctx context.Context, userId string, isActive b
 				if err := s.repo.UpdatePr(ctx, pr.Id, pr); err != nil {
 					return fmt.Errorf("failed to update PR %s after activating user: %w", pr.Id, err)
 				}
-				s.repo.AddReviewerToPR(ctx, pr.Id, userId)
+				if err := s.repo.AddReviewerToPR(ctx, pr.Id, userId); err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -343,12 +345,13 @@ func (s *PrService) Merge(ctx context.Context, userId string, prId string) (*ent
 	if userId == "admin" {
 		isReviewer = true
 	}
+	if pr.Status != "OPEN" {
+		return pr, nil
+	}
 	if !isReviewer {
 		return nil, ErrUnableToMerge
 	}
-	if pr.Status != "OPEN" {
-		return nil, ErrUnableToMerge
-	}
+
 	pr.Status = "MERGED"
 	now := time.Now().UTC()
 	pr.MergedAt = &now
@@ -433,4 +436,51 @@ func (s *PrService) Reassign(ctx context.Context, prID, oldReviewerID string) (*
 	}
 
 	return pr, newReviewer.Id, nil
+}
+
+func (s *PrService) GetStatistics(ctx context.Context) (map[string]int, map[string]int, error) {
+	prs, err := s.repo.GetAllPRs(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	byUser := make(map[string]int)
+	byPR := make(map[string]int)
+
+	for _, pr := range prs {
+		byPR[pr.Id] = len(pr.Reviewers)
+		for _, r := range pr.Reviewers {
+			byUser[r.Id]++
+		}
+	}
+
+	return byUser, byPR, nil
+}
+
+func (s *PrService) Deactivate(ctx context.Context, teamName string, userIDs []string) error {
+	team, err := s.repo.GetTeamByName(ctx, teamName)
+	if err != nil {
+		if errors.Is(err, repos.ErrTeamNotFound) {
+			return ErrTeamNotFound
+		}
+		return err
+	}
+	teamUserIDs := make(map[string]struct{}, len(team.Users))
+	for _, u := range team.Users {
+		teamUserIDs[u.Id] = struct{}{}
+	}
+	for _, userID := range userIDs {
+		if _, ok := teamUserIDs[userID]; !ok {
+			continue
+		}
+
+		err := s.SetUserActive(ctx, userID, false)
+		if err != nil {
+			if errors.Is(err, ErrUserNotFound) {
+				continue
+			}
+			return err
+		}
+	}
+	return nil
 }

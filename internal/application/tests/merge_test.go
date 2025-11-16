@@ -3,6 +3,7 @@ package application_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/JanArsMAI/PullRequestService/internal/application"
 	mock_interfaces "github.com/JanArsMAI/PullRequestService/internal/domain/interfaces/mocks"
@@ -58,10 +59,12 @@ func TestPrService_Merge_PRAlreadyClosed(t *testing.T) {
 	mockRepo := mock_interfaces.NewMockPullRequestRepo(ctrl)
 	svc := application.NewPrService(mockRepo)
 
+	now := time.Now()
 	prObj := &entityPR.PullRequest{
 		Id:        "pr1",
 		Reviewers: []entityUser.User{{Id: "user1"}},
 		Status:    "MERGED",
+		MergedAt:  &now,
 	}
 
 	mockRepo.EXPECT().
@@ -69,10 +72,10 @@ func TestPrService_Merge_PRAlreadyClosed(t *testing.T) {
 		Return(prObj, nil)
 
 	pr, err := svc.Merge(context.Background(), "user1", "pr1")
-	assert.Nil(t, pr)
-	assert.ErrorIs(t, err, application.ErrUnableToMerge)
+	assert.NoError(t, err)
+	assert.Equal(t, "MERGED", pr.Status)
+	assert.NotNil(t, pr.MergedAt)
 }
-
 func TestPrService_Merge_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

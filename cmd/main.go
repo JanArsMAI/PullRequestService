@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
@@ -43,7 +42,6 @@ func main() {
 	if err != nil {
 		log.Fatal(".env loading error")
 	}
-	rand.Seed(time.Now().UnixNano())
 	cfgPath := os.Getenv("CONFIG_PATH")
 	cfg, err := config.MustLoad(cfgPath)
 	if err != nil {

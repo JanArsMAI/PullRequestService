@@ -17,6 +17,15 @@ definitions:
       pull_request_name:
         type: string
     type: object
+  dto.DeactivationRequest:
+    properties:
+      team_name:
+        type: string
+      user_ids:
+        items:
+          type: string
+        type: array
+    type: object
   dto.ErrorMessage:
     properties:
       code:
@@ -119,6 +128,17 @@ definitions:
       user_id:
         type: string
     type: object
+  dto.StatsResponse:
+    properties:
+      by_pr:
+        additionalProperties:
+          type: integer
+        type: object
+      by_user:
+        additionalProperties:
+          type: integer
+        type: object
+    type: object
   dto.TeamDtoResponse:
     properties:
       members:
@@ -161,6 +181,46 @@ definitions:
 info:
   contact: {}
 paths:
+  /deactivate/use:
+    post:
+      description: Массово деактивирует пользователей указанной команды и безопасно
+        переназначает их открытые PR другим активным участникам
+      parameters:
+      - description: токен администратора(Вводить без Bearer)
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Тело запроса с ID пользователей и названием команды
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.DeactivationRequest'
+      responses:
+        "200":
+          description: Пользователи успешно деактивированы
+          schema:
+            type: string
+        "400":
+          description: Некорректный запрос (пустой teamName или userIDs)
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Неавторизованный доступ
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Команда не найдена
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Деактивировать пользователей команды
+      tags:
+      - Deactivation
   /pullRequest/create:
     post:
       consumes:
@@ -282,6 +342,32 @@ paths:
       summary: Переназначить конкретного ревьювера на другого из его команды
       tags:
       - PullRequests
+  /stats/get:
+    get:
+      description: Возвращает статистику по количеству ревьюеров на PR и по количеству
+        PR, рассмотренных каждым пользователем
+      parameters:
+      - description: токен администратора(Вводить без Bearer)
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Статистика успешно получена
+          schema:
+            $ref: '#/definitions/dto.StatsResponse'
+        "401":
+          description: Неавторизованный доступ
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Получить статистику PR
+      tags:
+      - Stats
   /team/add:
     post:
       consumes:

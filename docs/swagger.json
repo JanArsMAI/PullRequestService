@@ -4,6 +4,65 @@
         "contact": {}
     },
     "paths": {
+        "/deactivate/use": {
+            "post": {
+                "description": "Массово деактивирует пользователей указанной команды и безопасно переназначает их открытые PR другим активным участникам",
+                "tags": [
+                    "Deactivation"
+                ],
+                "summary": "Деактивировать пользователей команды",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "токен администратора(Вводить без Bearer)",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Тело запроса с ID пользователей и названием команды",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.DeactivationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Пользователи успешно деактивированы",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный запрос (пустой teamName или userIDs)",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Неавторизованный доступ",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Команда не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/pullRequest/create": {
             "post": {
                 "description": "Создаёт новый Pull Request от указанного автора.\nРевьюеры выбираются автоматически на основе команды автора.",
@@ -171,6 +230,44 @@
                     },
                     "404": {
                         "description": "PR не найден",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/stats/get": {
+            "get": {
+                "description": "Возвращает статистику по количеству ревьюеров на PR и по количеству PR, рассмотренных каждым пользователем",
+                "tags": [
+                    "Stats"
+                ],
+                "summary": "Получить статистику PR",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "токен администратора(Вводить без Bearer)",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Статистика успешно получена",
+                        "schema": {
+                            "$ref": "#/definitions/dto.StatsResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Неавторизованный доступ",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -451,6 +548,20 @@
                 }
             }
         },
+        "dto.DeactivationRequest": {
+            "type": "object",
+            "properties": {
+                "team_name": {
+                    "type": "string"
+                },
+                "user_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "dto.ErrorMessage": {
             "type": "object",
             "properties": {
@@ -607,6 +718,23 @@
                 },
                 "user_id": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.StatsResponse": {
+            "type": "object",
+            "properties": {
+                "by_pr": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
+                },
+                "by_user": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
                 }
             }
         },

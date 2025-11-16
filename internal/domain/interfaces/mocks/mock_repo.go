@@ -8,9 +8,9 @@ import (
 	context "context"
 	reflect "reflect"
 
-	pullrequest "github.com/JanArsMAI/PullRequestService/internal/domain/pullrequest"
-	team "github.com/JanArsMAI/PullRequestService/internal/domain/team"
-	user "github.com/JanArsMAI/PullRequestService/internal/domain/user"
+	entity "github.com/JanArsMAI/PullRequestService/internal/domain/pullrequest"
+	entity0 "github.com/JanArsMAI/PullRequestService/internal/domain/team"
+	entity1 "github.com/JanArsMAI/PullRequestService/internal/domain/user"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -38,7 +38,7 @@ func (m *MockPullRequestRepo) EXPECT() *MockPullRequestRepoMockRecorder {
 }
 
 // AddPR mocks base method.
-func (m *MockPullRequestRepo) AddPR(ctx context.Context, pr pullrequest.PullRequest) error {
+func (m *MockPullRequestRepo) AddPR(ctx context.Context, pr entity.PullRequest) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddPR", ctx, pr)
 	ret0, _ := ret[0].(error)
@@ -66,7 +66,7 @@ func (mr *MockPullRequestRepoMockRecorder) AddReviewerToPR(ctx, prId, reviewerID
 }
 
 // AddTeam mocks base method.
-func (m *MockPullRequestRepo) AddTeam(ctx context.Context, name string, users []user.User) error {
+func (m *MockPullRequestRepo) AddTeam(ctx context.Context, name string, users []entity1.User) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddTeam", ctx, name, users)
 	ret0, _ := ret[0].(error)
@@ -79,11 +79,26 @@ func (mr *MockPullRequestRepoMockRecorder) AddTeam(ctx, name, users interface{})
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddTeam", reflect.TypeOf((*MockPullRequestRepo)(nil).AddTeam), ctx, name, users)
 }
 
+// GetAllPRs mocks base method.
+func (m *MockPullRequestRepo) GetAllPRs(ctx context.Context) ([]entity.PullRequest, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAllPRs", ctx)
+	ret0, _ := ret[0].([]entity.PullRequest)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAllPRs indicates an expected call of GetAllPRs.
+func (mr *MockPullRequestRepoMockRecorder) GetAllPRs(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllPRs", reflect.TypeOf((*MockPullRequestRepo)(nil).GetAllPRs), ctx)
+}
+
 // GetPr mocks base method.
-func (m *MockPullRequestRepo) GetPr(ctx context.Context, prID string) (*pullrequest.PullRequest, error) {
+func (m *MockPullRequestRepo) GetPr(ctx context.Context, prID string) (*entity.PullRequest, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPr", ctx, prID)
-	ret0, _ := ret[0].(*pullrequest.PullRequest)
+	ret0, _ := ret[0].(*entity.PullRequest)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -95,10 +110,10 @@ func (mr *MockPullRequestRepoMockRecorder) GetPr(ctx, prID interface{}) *gomock.
 }
 
 // GetTeam mocks base method.
-func (m *MockPullRequestRepo) GetTeam(ctx context.Context, id int) (*team.Team, error) {
+func (m *MockPullRequestRepo) GetTeam(ctx context.Context, id int) (*entity0.Team, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetTeam", ctx, id)
-	ret0, _ := ret[0].(*team.Team)
+	ret0, _ := ret[0].(*entity0.Team)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -110,10 +125,10 @@ func (mr *MockPullRequestRepoMockRecorder) GetTeam(ctx, id interface{}) *gomock.
 }
 
 // GetTeamByName mocks base method.
-func (m *MockPullRequestRepo) GetTeamByName(ctx context.Context, name string) (*team.Team, error) {
+func (m *MockPullRequestRepo) GetTeamByName(ctx context.Context, name string) (*entity0.Team, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetTeamByName", ctx, name)
-	ret0, _ := ret[0].(*team.Team)
+	ret0, _ := ret[0].(*entity0.Team)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -125,10 +140,10 @@ func (mr *MockPullRequestRepoMockRecorder) GetTeamByName(ctx, name interface{}) 
 }
 
 // GetTeamPr mocks base method.
-func (m *MockPullRequestRepo) GetTeamPr(ctx context.Context, teamID int) ([]pullrequest.PullRequest, error) {
+func (m *MockPullRequestRepo) GetTeamPr(ctx context.Context, teamID int) ([]entity.PullRequest, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetTeamPr", ctx, teamID)
-	ret0, _ := ret[0].([]pullrequest.PullRequest)
+	ret0, _ := ret[0].([]entity.PullRequest)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -140,10 +155,10 @@ func (mr *MockPullRequestRepoMockRecorder) GetTeamPr(ctx, teamID interface{}) *g
 }
 
 // GetUserByID mocks base method.
-func (m *MockPullRequestRepo) GetUserByID(ctx context.Context, userID string) (*user.User, error) {
+func (m *MockPullRequestRepo) GetUserByID(ctx context.Context, userID string) (*entity1.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUserByID", ctx, userID)
-	ret0, _ := ret[0].(*user.User)
+	ret0, _ := ret[0].(*entity1.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -155,10 +170,10 @@ func (mr *MockPullRequestRepoMockRecorder) GetUserByID(ctx, userID interface{}) 
 }
 
 // GetUserWithTeam mocks base method.
-func (m *MockPullRequestRepo) GetUserWithTeam(ctx context.Context, userID string) (*user.User, string, error) {
+func (m *MockPullRequestRepo) GetUserWithTeam(ctx context.Context, userID string) (*entity1.User, string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUserWithTeam", ctx, userID)
-	ret0, _ := ret[0].(*user.User)
+	ret0, _ := ret[0].(*entity1.User)
 	ret1, _ := ret[1].(string)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2
@@ -171,10 +186,10 @@ func (mr *MockPullRequestRepoMockRecorder) GetUserWithTeam(ctx, userID interface
 }
 
 // GetUsersPr mocks base method.
-func (m *MockPullRequestRepo) GetUsersPr(ctx context.Context, userId string, onlyActive bool) ([]pullrequest.PullRequest, error) {
+func (m *MockPullRequestRepo) GetUsersPr(ctx context.Context, userId string, onlyActive bool) ([]entity.PullRequest, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUsersPr", ctx, userId, onlyActive)
-	ret0, _ := ret[0].([]pullrequest.PullRequest)
+	ret0, _ := ret[0].([]entity.PullRequest)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -200,7 +215,7 @@ func (mr *MockPullRequestRepoMockRecorder) RemoveReviewerFromAllPR(ctx, reviewer
 }
 
 // UpdatePr mocks base method.
-func (m *MockPullRequestRepo) UpdatePr(ctx context.Context, prId string, newPr pullrequest.PullRequest) error {
+func (m *MockPullRequestRepo) UpdatePr(ctx context.Context, prId string, newPr entity.PullRequest) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdatePr", ctx, prId, newPr)
 	ret0, _ := ret[0].(error)
@@ -214,7 +229,7 @@ func (mr *MockPullRequestRepoMockRecorder) UpdatePr(ctx, prId, newPr interface{}
 }
 
 // UpdateUser mocks base method.
-func (m *MockPullRequestRepo) UpdateUser(ctx context.Context, u user.User) error {
+func (m *MockPullRequestRepo) UpdateUser(ctx context.Context, u entity1.User) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateUser", ctx, u)
 	ret0, _ := ret[0].(error)

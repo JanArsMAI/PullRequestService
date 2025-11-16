@@ -20,6 +20,6 @@ func ConfigureApp(r *gin.Engine, logger *zap.Logger) func() {
 	svc := application.NewPrService(repo)
 	rest.InitRoutes(r, svc, logger)
 	return func() {
-		logger.Sync()
+		_ = logger.Sync()
 	}
 }

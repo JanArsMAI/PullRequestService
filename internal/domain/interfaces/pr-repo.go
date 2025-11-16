@@ -22,4 +22,5 @@ type PullRequestRepo interface {
 	GetUserWithTeam(ctx context.Context, userID string) (*entityUser.User, string, error)
 	AddReviewerToPR(ctx context.Context, prId string, reviewerID string) error
 	GetTeamPr(ctx context.Context, teamID int) ([]entityPr.PullRequest, error)
+	GetAllPRs(ctx context.Context) ([]entityPr.PullRequest, error)
 }

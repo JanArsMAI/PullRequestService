@@ -3,21 +3,21 @@ package db
 import "os"
 
 type PostgresConfig struct {
-	user     string
-	password string
-	dbname   string
-	host     string
-	port     string
-	ssl      string
+	User     string
+	Password string
+	DbName   string
+	Host     string
+	Port     string
+	SSLMode  string
 }
 
 func ReadConfig() PostgresConfig {
 	return PostgresConfig{
-		user:     os.Getenv("POSTGRES_USER"),
-		password: os.Getenv("POSTGRES_PASSWORD"),
-		dbname:   os.Getenv("POSTGRES_DB"),
-		host:     os.Getenv("POSTGRES_HOST"),
-		port:     os.Getenv("POSTGRES_PORT"),
-		ssl:      os.Getenv("DB_SSL"),
+		User:     os.Getenv("POSTGRES_USER"),
+		Password: os.Getenv("POSTGRES_PASSWORD"),
+		DbName:   os.Getenv("POSTGRES_DB"),
+		Host:     os.Getenv("POSTGRES_HOST"),
+		Port:     os.Getenv("POSTGRES_PORT"),
+		SSLMode:  os.Getenv("DB_SSL"),
 	}
 }
