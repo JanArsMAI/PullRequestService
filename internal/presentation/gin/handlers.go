@@ -116,7 +116,7 @@ func (h *Handlers) AddTeam(ctx *gin.Context) {
 
 // GetTeam godoc
 // @Summary Получение информации о команде
-// @Description Возвращает информацию о команде и её участниках. Доступ разрешён только для участников команды.
+// @Description Возвращает информацию о команде и её участниках. Доступ разрешён только для участников команды или администратора.
 // @Tags team
 // @Accept json
 // @Produce json
@@ -180,11 +180,10 @@ func (h *Handlers) GetTeam(ctx *gin.Context) {
 			Name:     user.Name,
 			IsActive: user.IsActive,
 		})
-		if user.Id == userId.(string) {
+		if user.Id == userId.(string) || userId.(string) == "admin" {
 			isInTeam = true
 		}
 	}
-	//если пользователя нет в команде, которую запрашщивает, то запрещаем доступ
 	if !isInTeam {
 		h.logger.Warn("Forbidden access for user to get team", zap.String("team", team.Name), zap.String("user_id", userId.(string)))
 		ctx.AbortWithStatusJSON(http.StatusForbidden, dto.ErrorResponse{
